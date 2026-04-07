@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ session.csrf_token }}">
+    <title>Feedback Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div id="admin-dashboard" class="card card-wide">
+        <div class="admin-header">
+            <h1>Feedback Dashboard</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('export_csv') }}" class="btn btn-secondary btn-sm">Export CSV</a>
+                <a href="{{ url_for('export_json') }}" class="btn btn-secondary btn-sm">Export JSON</a>
+                <form id="logout-form" action="{{ url_for('admin_logout') }}" method="POST">
+                    <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>Category</label>
+                <select id="filter-category">
+                    <option value="all" {% if category == 'all' %}selected{% endif %}>All Categories</option>
+                    <option value="general" {% if category == 'general' %}selected{% endif %}>General</option>
+                    <option value="bug" {% if category == 'bug' %}selected{% endif %}>Bug Report</option>
+                    <option value="feature" {% if category == 'feature' %}selected{% endif %}>Feature Request</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Rating</label>
+                <select id="filter-rating">
+                    <option value="all" {% if rating == 'all' %}selected{% endif %}>All Ratings</option>
+                    <option value="5" {% if rating == '5' %}selected{% endif %}>5 Stars</option>
+                    <option value="4" {% if rating == '4' %}selected{% endif %}>4 Stars</option>
+                    <option value="3" {% if rating == '3' %}selected{% endif %}>3 Stars</option>
+                    <option value="2" {% if rating == '2' %}selected{% endif %}>2 Stars</option>
+                    <option value="1" {% if rating == '1' %}selected{% endif %}>1 Star</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" id="filter-search" placeholder="Search name, email, feedback..." value="{{ search or '' }}">
+            </div>
+            <button class="btn btn-primary btn-sm" id="apply-filters" style="align-self: flex-end;">Apply</button>
+        </div>
+
+        {% if total > 0 %}
+        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem;">{{ total }} response(s) found</p>
+
+        <div class="table-wrapper">
+            <table id="feedback-table">
+                <thead>
+                    <tr>
+                        <th data-sort="id">ID <span class="sort-indicator">{% if sort_by == 'id' %}{{ '↓' if sort_order == 'ASC' else '↑' }}{% else %}↕{% endif %}</span></th>
+                        <th data-sort="name">Name <span class="sort-indicator">{% if sort_by == 'name' %}{{ '↓' if sort_order == 'ASC' else '↑' }}{% else %}↕{% endif %}</span></th>
+                        <th data-sort="email">Email <span class="sort-indicator">{% if sort_by == 'email' %}{{ '↓' if sort_order == 'ASC' else '↑' }}{% else %}↕{% endif %}</span></th>
+                        <th data-sort="rating">Rating <span class="sort-indicator">{% if sort_by == 'rating' %}{{ '↓' if sort_order == 'ASC' else '↑' }}{% else %}↕{% endif %}</span></th>
+                        <th data-sort="category">Category <span class="sort-indicator">{% if sort_by == 'category' %}{{ '↓' if sort_order == 'ASC' else '↑' }}{% else %}↕{% endif %}</span></th>
+                        <th>Feedback</th>
+                        <th>Reply</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in feedbacks %}
+                    <tr>
+                        <td>{{ f.id }}</td>
+                        <td>{{ f.name }}</td>
+                        <td>{{ f.email }}</td>
+                        <td class="stars">
+                            {% for i in range(f.rating) %}★{% endfor %}{% for i in range(5 - f.rating) %}☆{% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ f.category }}">{{ f.category }}</span>
+                        </td>
+                        <td class="feedback-text">{{ f.feedback_text }}</td>
+                        <td>
+                            {% if f.reply %}
+                            <div class="reply-existing">{{ f.reply }}</div>
+                            {% else %}
+                            <span style="color: var(--text-light); font-size: 0.82rem;">No reply</span>
+                            {% endif %}
+                            <div class="reply-area" data-id="{{ f.id }}">
+                                <textarea placeholder="Write a reply..." rows="2"></textarea>
+                                <button class="btn btn-primary btn-sm reply-submit-btn" data-id="{{ f.id }}">Save</button>
+                            </div>
+                        </td>
+                        <td class="actions">
+                            <button class="btn btn-secondary btn-sm reply-btn" data-id="{{ f.id }}">Reply</button>
+                            <button class="btn btn-danger btn-sm delete-btn" data-id="{{ f.id }}">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="?page={{ page - 1 }}{% if sort_by != 'created_at' %}&sort_by={{ sort_by }}{% endif %}{% if sort_order != 'DESC' %}&sort_order={{ sort_order }}{% endif %}{% if category != 'all' %}&category={{ category }}{% endif %}{% if rating != 'all' %}&rating={{ rating }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="btn btn-secondary btn-sm">Previous</a>
+            {% endif %}
+            <span>Page {{ page }} of {{ total_pages }}</span>
+            {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}{% if sort_by != 'created_at' %}&sort_by={{ sort_by }}{% endif %}{% if sort_order != 'DESC' %}&sort_order={{ sort_order }}{% endif %}{% if category != 'all' %}&category={{ category }}{% endif %}{% if rating != 'all' %}&rating={{ rating }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="btn btn-secondary btn-sm">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="table-wrapper">
+            <p class="empty-state">No feedback responses yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Sortable headers
+        document.querySelectorAll('#feedback-table th[data-sort]').forEach(function(th) {
+            th.addEventListener('click', function() {
+                var sortBy = this.getAttribute('data-sort');
+                var currentSort = '{{ sort_by }}';
+                var currentOrder = '{{ sort_order }}';
+                var params = new URLSearchParams(window.location.search);
+                params.set('page', '1');
+
+                if (sortBy === currentSort) {
+                    params.set('sort_order', currentOrder === 'ASC' ? 'DESC' : 'ASC');
+                } else {
+                    params.set('sort_order', 'ASC');
+                }
+                params.set('sort_by', sortBy);
+
+                window.location.search = params.toString();
+            });
+
+            // Highlight active sort column
+            if (th.getAttribute('data-sort') === '{{ sort_by }}') {
+                th.classList.add('active-sort');
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

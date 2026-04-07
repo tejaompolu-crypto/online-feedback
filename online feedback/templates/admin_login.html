@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Access</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="card card-login">
+        <h1>Admin Access</h1>
+        <p class="subtitle">Enter the secret key to continue.</p>
+
+        <form id="login-form" novalidate>
+            <div class="form-group">
+                <label for="secret-key">Secret Key</label>
+                <input type="password" id="secret-key" placeholder="Enter secret key">
+            </div>
+            <div class="error-text" id="login-error-text" style="color: var(--error); font-size: 0.85rem; margin-bottom: 0.75rem;"></div>
+            <button type="submit" class="btn btn-primary" id="login-btn">Login</button>
+        </form>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
